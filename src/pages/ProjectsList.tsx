@@ -55,7 +55,7 @@ export default function ProjectsList() {
         subtitle="Manage your deployment projects and repositories"
       >
         <button
-          onClick={() => nav("/templates/create-template")}
+          onClick={() => nav(`/templates/create-template/__new__`)}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-slate-900 text-white"
         >
           <Plus className="w-4 h-4" />

@@ -9,6 +9,8 @@ const WorkingOnPage = lazy(() => import("./pages/WorkingOnPage"));
 const ProjectList = lazy(() => import("./pages/ProjectsList"));
 const ProjectDetails = lazy(() => import("./pages/ProjectDetailPage"));
 const CreateTemplatePage = lazy(() => import("./pages/CreateTemplatePage"));
+const TemplateListPage = lazy(() => import("./pages/TemplateListPage"));
+const TemplateDetailPage = lazy(() => import("./pages/TemplateDetailPage"));
 
 function App() {
   return (
@@ -40,17 +42,27 @@ function App() {
               }
             />
             <Route
-              path="/templates/:slug"
+              path="/templates"
               element={
                 <RoleProtectedRoute allowedRoles={["Admin", "Manager"]}>
                   <TopNavLayout>
-                    <ProjectDetails />
+                    <TemplateListPage />
                   </TopNavLayout>
                 </RoleProtectedRoute>
               }
             />
             <Route
-              path="/templates/create-template"
+              path="/templates/:slug"
+              element={
+                <RoleProtectedRoute allowedRoles={["Admin", "Manager"]}>
+                  <TopNavLayout>
+                    <TemplateDetailPage />
+                  </TopNavLayout>
+                </RoleProtectedRoute>
+              }
+            />
+            <Route
+              path="/templates/create-template/:slug"
               element={
                 <RoleProtectedRoute allowedRoles={["Admin", "Manager"]}>
                   <TopNavLayout>

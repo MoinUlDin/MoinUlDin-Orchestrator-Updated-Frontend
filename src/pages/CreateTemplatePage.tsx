@@ -39,9 +39,9 @@ type ServiceDraft = {
   service_type: string; // 'backend' | 'frontend' | etc
   repo_url?: string;
   repo_branch?: string;
-  expose_domain?: boolean;
   dockerfile_path?: string;
   internal_provision_endpoint?: string;
+  internal_provision_token_secret?: string;
   env_vars: { name: string; value: string }[];
 };
 
@@ -170,7 +170,6 @@ export default function CreateTemplatePage() {
     service_type: "backend",
     repo_url: "",
     repo_branch: "main",
-    expose_domain: false,
     dockerfile_path: "./Dockerfile",
     internal_provision_endpoint: "",
     env_vars: [],
@@ -253,7 +252,7 @@ export default function CreateTemplatePage() {
             // you may want to embed envs under build_config or as a separate field
             env: s.env_vars || [],
           },
-          expose_domain: Boolean(s.expose_domain),
+          internal_provision_token_secret: s.internal_provision_token_secret,
           internal_provision_endpoint: s.internal_provision_endpoint || "",
           // If your backend expects `build_env` instead, adapt accordingly
           // build_env: s.env_vars || []
@@ -445,6 +444,7 @@ export default function CreateTemplatePage() {
           </section>
         )}
 
+        {/* Database View */}
         {activeTab === "database" && (
           <section>
             <h3 className="text-lg font-semibold mb-1">
@@ -532,6 +532,7 @@ export default function CreateTemplatePage() {
           </section>
         )}
 
+        {/* Services View */}
         {activeTab === "services" && (
           <section>
             <h3 className="text-lg font-semibold mb-1">Service Templates</h3>
@@ -596,9 +597,9 @@ export default function CreateTemplatePage() {
                         >
                           <option value="backend">Backend</option>
                           <option value="frontend">Frontend</option>
-                          <option value="db">Database</option>
-                          <option value="worker">Worker</option>
-                          <option value="other">Other</option>
+                          {/* <option value="db">Database</option> */}
+                          {/* <option value="worker">Worker</option>
+                          <option value"other">Other</option> */}
                         </select>
                       </div>
 
@@ -634,27 +635,27 @@ export default function CreateTemplatePage() {
                         />
                       </div>
 
-                      <div>
-                        <label className="block text-sm text-slate-700">
-                          Expose Domain
-                        </label>
-                        <div className="mt-2">
-                          <label className="inline-flex items-center gap-3">
-                            <input
-                              type="checkbox"
-                              checked={!!s.expose_domain}
-                              onChange={(e) =>
-                                updateServiceDraft(s.id, {
-                                  expose_domain: e.target.checked,
-                                })
-                              }
-                            />
-                            <span className="text-sm">
-                              Expose public domain
-                            </span>
+                      {s.service_type === "backend" && (
+                        <div className="">
+                          <label className="block text-sm text-slate-700">
+                            Internal Provision Endpoint
                           </label>
+                          <input
+                            className="mt-1 w-full px-3 py-2 border rounded-md"
+                            value={s.internal_provision_endpoint}
+                            onChange={(e) =>
+                              updateServiceDraft(s.id, {
+                                internal_provision_endpoint: e.target.value,
+                              })
+                            }
+                            placeholder="/api/admin/setup"
+                          />
+                          <p className="text-xs text-slate-400 mt-1">
+                            Endpoint to call after deployment for initial setup
+                            (required for backend)
+                          </p>
                         </div>
-                      </div>
+                      )}
 
                       <div>
                         <label className="block text-sm text-slate-700">
@@ -672,25 +673,26 @@ export default function CreateTemplatePage() {
                         />
                       </div>
 
-                      <div className="md:col-span-2">
-                        <label className="block text-sm text-slate-700">
-                          Internal Provision Endpoint
-                        </label>
-                        <input
-                          className="mt-1 w-full px-3 py-2 border rounded-md"
-                          value={s.internal_provision_endpoint}
-                          onChange={(e) =>
-                            updateServiceDraft(s.id, {
-                              internal_provision_endpoint: e.target.value,
-                            })
-                          }
-                          placeholder="/api/admin/setup"
-                        />
-                        <p className="text-xs text-slate-400 mt-1">
-                          Endpoint to call after deployment for initial setup
-                          (optional)
-                        </p>
-                      </div>
+                      {s.service_type === "backend" && (
+                        <div className="md:col-span-2">
+                          <label className="block text-sm text-slate-700">
+                            Provision Token
+                          </label>
+                          <div className="">
+                            <input
+                              className="mt-1 w-full px-3 py-2 border rounded-md"
+                              value={s.internal_provision_token_secret}
+                              placeholder="Paste your Token here"
+                              onChange={(e) =>
+                                updateServiceDraft(s.id, {
+                                  internal_provision_token_secret:
+                                    e.target.value,
+                                })
+                              }
+                            />
+                          </div>
+                        </div>
+                      )}
 
                       {/* Env vars entry */}
                       <div className="md:col-span-2">
