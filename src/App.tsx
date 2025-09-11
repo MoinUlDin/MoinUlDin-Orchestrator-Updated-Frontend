@@ -1,0 +1,104 @@
+// App.tsx
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { lazy } from "react";
+import RoleProtectedRoute from "./components/RoleProtectedRoute";
+import TopNavLayout from "./layouts/TopNavLayout";
+import { Toaster } from "react-hot-toast";
+const LoginPage = lazy(() => import("./pages/auth/Login"));
+const WorkingOnPage = lazy(() => import("./pages/WorkingOnPage"));
+const ProjectList = lazy(() => import("./pages/ProjectsList"));
+const ProjectDetails = lazy(() => import("./pages/ProjectDetailPage"));
+const CreateTemplatePage = lazy(() => import("./pages/CreateTemplatePage"));
+
+function App() {
+  return (
+    <Router>
+      <div className="min-h-screen bg-gray-50">
+        <main>
+          <Routes>
+            <Route path="/" element={<LoginPage />} />
+
+            <Route
+              path="/dashboard"
+              element={
+                <RoleProtectedRoute allowedRoles={["Admin", "Manager"]}>
+                  <TopNavLayout>
+                    <WorkingOnPage />
+                  </TopNavLayout>
+                </RoleProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/projects"
+              element={
+                <RoleProtectedRoute allowedRoles={["Admin", "Manager"]}>
+                  <TopNavLayout>
+                    <ProjectList />
+                  </TopNavLayout>
+                </RoleProtectedRoute>
+              }
+            />
+            <Route
+              path="/templates/:slug"
+              element={
+                <RoleProtectedRoute allowedRoles={["Admin", "Manager"]}>
+                  <TopNavLayout>
+                    <ProjectDetails />
+                  </TopNavLayout>
+                </RoleProtectedRoute>
+              }
+            />
+            <Route
+              path="/templates/create-template"
+              element={
+                <RoleProtectedRoute allowedRoles={["Admin", "Manager"]}>
+                  <TopNavLayout>
+                    <CreateTemplatePage />
+                  </TopNavLayout>
+                </RoleProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/projects/*"
+              element={
+                <RoleProtectedRoute allowedRoles={["Admin", "Manager"]}>
+                  <TopNavLayout>
+                    <WorkingOnPage />
+                  </TopNavLayout>
+                </RoleProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/profile"
+              element={
+                <RoleProtectedRoute allowedRoles={["Admin", "Manager"]}>
+                  <TopNavLayout>
+                    <WorkingOnPage />
+                  </TopNavLayout>
+                </RoleProtectedRoute>
+              }
+            />
+
+            <Route
+              path="*"
+              element={
+                <RoleProtectedRoute allowedRoles={["Admin", "Manager"]}>
+                  <TopNavLayout>
+                    <WorkingOnPage />
+                  </TopNavLayout>
+                </RoleProtectedRoute>
+              }
+            />
+          </Routes>
+        </main>
+
+        <Toaster position="top-right" reverseOrder={false} />
+      </div>
+    </Router>
+  );
+}
+
+export default App;
