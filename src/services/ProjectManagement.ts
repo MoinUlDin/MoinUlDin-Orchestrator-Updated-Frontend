@@ -13,6 +13,14 @@ type AnyObj = Record<string, any>;
 
 class ProjectManagement {
   // ---------- Audit Entries ----------
+  static async getDashboard() {
+    try {
+      const res = await api.get("/api/dashboard/overview/");
+      return res.data;
+    } catch (error: any) {
+      throw error.response?.data || error.message;
+    }
+  }
   static async listAuditEntries(params?: QueryParams) {
     try {
       const res = await api.get("/api/audit-entries/", { params });
@@ -114,6 +122,14 @@ class ProjectManagement {
       throw error.response?.data || error.message;
     }
   }
+  static async getDeploymentLogs(id?: number) {
+    try {
+      const res = await api.get(`/api/deployments/${id}/logs/`);
+      return res.data;
+    } catch (error: any) {
+      throw error.response?.data || error.message;
+    }
+  }
 
   static async createDeployment(payload: AnyObj) {
     try {
@@ -160,9 +176,9 @@ class ProjectManagement {
     }
   }
 
-  static async resumeDeployment(id: number | string, payload: AnyObj = {}) {
+  static async resumeDeployment(id: number | string) {
     try {
-      const res = await api.post(`/api/deployments/${id}/resume/`, payload);
+      const res = await api.post(`/api/deployments/${id}/resume/`);
       return res.data;
     } catch (error: any) {
       throw error.response?.data || error.message;
@@ -336,20 +352,29 @@ class ProjectManagement {
       throw error.response?.data || error.message;
     }
   }
-
-  static async getProjectTemplate(id: number | string) {
+  static async fetch_tenant_details(slug: string | string) {
     try {
-      console.log(`Sending to : /project-templates/${id}/`);
-      const res = await api.get(`/api/project-templates/${id}/`);
+      const res = await api.get(
+        `/api/project-templates/${slug}/fetch_tenant_details/`
+      );
       return res.data;
     } catch (error: any) {
       throw error.response?.data || error.message;
     }
   }
 
-  static async updateProjectTemplate(id: number | string, payload: AnyObj) {
+  static async getProjectTemplate(slug: string | string) {
     try {
-      const res = await api.put(`/api/project-templates/${id}/`, payload);
+      const res = await api.get(`/api/project-templates/${slug}/`);
+      return res.data;
+    } catch (error: any) {
+      throw error.response?.data || error.message;
+    }
+  }
+
+  static async updateProjectTemplate(slug: number | string, payload: AnyObj) {
+    try {
+      const res = await api.put(`/api/project-templates/${slug}/`, payload);
       return res.data;
     } catch (error: any) {
       throw error.response?.data || error.message;

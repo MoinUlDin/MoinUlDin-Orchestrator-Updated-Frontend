@@ -83,13 +83,13 @@ const TemplateListPage: React.FC = () => {
     navigate(`/templates/create-template/${slug}`);
   };
 
-  const handleDelete = (id: number) => {
+  const handleDelete = (slug: string) => {
     // Confirm and delete
     if (window.confirm("Are you sure you want to delete this template?")) {
       // Call API to delete
-      ProjectManagement.deleteProjectTemplate(id)
+      ProjectManagement.deleteProjectTemplate(slug)
         .then(() => {
-          setProjects((prev) => prev.filter((p) => p.id !== id));
+          setProjects((prev) => prev.filter((p) => p.slug !== slug));
         })
         .catch((err) => console.error("Delete failed", err));
     }
@@ -210,7 +210,7 @@ const TemplateListPage: React.FC = () => {
                         Edit Template
                       </button>
                       <button
-                        onClick={() => handleDelete(project.id)}
+                        onClick={() => handleDelete(project.slug)}
                         className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
                       >
                         <Trash2 className="w-4 h-4" />

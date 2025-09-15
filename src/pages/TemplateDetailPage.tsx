@@ -3,14 +3,9 @@ import { useParams, useNavigate } from "react-router-dom";
 import { type ProjectDetailType } from "../utils/types";
 import { truncString } from "../utils/helpers";
 import {
-  Edit3,
   ArrowLeft,
-  Trash2,
   Database,
   Globe,
-  Server,
-  Clock,
-  User,
   AlertTriangle,
   Mail,
   Edit,
@@ -55,6 +50,9 @@ const TemplateDetailPage: React.FC = () => {
     });
   };
 
+  const handleEdit = () => {
+    navigate(`/templates/create-template/${slug}`);
+  };
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -106,7 +104,10 @@ const TemplateDetailPage: React.FC = () => {
                 Active
               </span>
             )}
-            <button className="border text-[14px] bg-white text-gray-800 px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-gray-200 transition-colors">
+            <button
+              onClick={handleEdit}
+              className="border text-[14px] bg-white text-gray-800 px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-gray-200 transition-colors"
+            >
               <Edit className="w-4 h-4" />
               Edit Template
             </button>

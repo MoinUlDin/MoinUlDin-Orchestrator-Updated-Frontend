@@ -13,17 +13,19 @@ type Props = {
     status?: "active" | "deploying" | "inactive";
     updated_at?: string;
   };
+  deploybtn: (project: any) => void;
 };
 
-export default function ProjectCard({ project }: Props) {
+export default function ProjectCard({ project, deploybtn }: Props) {
   const nav = useNavigate();
 
   const onDeploy = () => {
-    nav(`/templates/${project.slug}/deploy`);
+    deploybtn(project);
   };
 
   const onView = () => {
-    nav(`/templates/${project.slug}`);
+    nav(`/project-detail/${project.slug}`);
+    // navigate to project details instaces, list view
   };
 
   return (

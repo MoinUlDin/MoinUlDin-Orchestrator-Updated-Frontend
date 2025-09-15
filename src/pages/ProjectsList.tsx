@@ -5,24 +5,18 @@ import PageHeader from "../components/PageHeader";
 import { Plus } from "lucide-react";
 import ProjectManagement from "../services/ProjectManagement";
 import ProjectTemplateModal from "../components/modals/ProjectTemplateModal";
+import DeployTenantModal from "../components/modals/DeployTenantModal";
 import { useNavigate } from "react-router-dom";
-
-type ProjectSummary = {
-  id: number;
-  name: string;
-  slug: string;
-  description?: string;
-  repo?: string;
-  active_tenants_count?: number;
-  status?: "active" | "deploying" | "inactive";
-  updated_at?: string;
-};
+import { type ProjectSummary } from "../utils/types";
 
 export default function ProjectsList() {
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [deployProject, setDeployProject] = useState<ProjectSummary | null>(
+    null
+  );
   const nav = useNavigate();
   useEffect(() => {
     let mounted = true;
@@ -48,6 +42,16 @@ export default function ProjectsList() {
     };
   }, []);
 
+  const refresh = () => {
+    setLoading(true);
+    ProjectManagement.listProjectTemplates()
+      .then((data) => {
+        const items = Array.isArray(data) ? data : data.results ?? [];
+        setProjects(items);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  };
   return (
     <div>
       <PageHeader
@@ -88,11 +92,25 @@ export default function ProjectsList() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {projects.map((p) => (
-            <ProjectCard key={p.slug} project={p} />
+            <ProjectCard
+              key={p.slug}
+              project={p}
+              deploybtn={setDeployProject}
+            />
           ))}
         </div>
       )}
 
+      <DeployTenantModal
+        isOpen={!!deployProject}
+        project={deployProject ?? undefined}
+        onClose={() => setDeployProject(null)}
+        onCreated={(tenant) => {
+          console.log("tenant: ", tenant);
+          // on created refresh list and optionally navigate somewhere
+          refresh();
+        }}
+      />
       <ProjectTemplateModal
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}

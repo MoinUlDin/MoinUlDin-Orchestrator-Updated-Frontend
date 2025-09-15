@@ -1,15 +1,10 @@
 // src/pages/CreateTemplate.tsx
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import ProjectManagement from "../services/ProjectManagement";
 import toast from "react-hot-toast";
-import {
-  ChevronLeft,
-  Save,
-  Plus,
-  Trash,
-  Database as DbIcon,
-} from "lucide-react";
+import ServiceTemplatesForm from "../components/template/ServiceTemplatesFormProps";
+import { ChevronLeft, Save, Database as DbIcon } from "lucide-react";
 
 type DBType = "postgres" | "mysql" | "mongodb";
 
@@ -18,7 +13,7 @@ type BasicInfoPayload = {
   slug: string;
   description?: string;
   base_domain: string;
-  notify_emails: string[]; // array
+  notify_emails: string[];
 };
 
 type TemplateRecord = {
@@ -31,18 +26,7 @@ type TemplateRecord = {
   db_type?: DBType;
   notify_emails?: string[];
   active?: boolean;
-};
-
-type ServiceDraft = {
-  id: string; // client-side id
-  name: string;
-  service_type: string; // 'backend' | 'frontend' | etc
-  repo_url?: string;
-  repo_branch?: string;
-  dockerfile_path?: string;
-  internal_provision_endpoint?: string;
-  internal_provision_token_secret?: string;
-  env_vars: { name: string; value: string }[];
+  service_templates?: any[];
 };
 
 function slugify(s: string) {
@@ -56,6 +40,8 @@ function slugify(s: string) {
 
 export default function CreateTemplatePage() {
   const nav = useNavigate();
+  const { slug: templateSlugFromUrl } = useParams<{ slug: string }>();
+  const isEditing = !!templateSlugFromUrl && templateSlugFromUrl !== "__new__";
 
   // Tabs
   const TABS = ["basic", "database", "services"] as const;
@@ -80,13 +66,10 @@ export default function CreateTemplatePage() {
   const [dbRequired, setDbRequired] = useState<boolean>(false);
   const [dbType, setDbType] = useState<DBType>("postgres");
 
-  // services drafts
-  const [services, setServices] = useState<ServiceDraft[]>([]);
-
   // loading flags
   const [loadingBasic, setLoadingBasic] = useState(false);
   const [loadingDb, setLoadingDb] = useState(false);
-  const [loadingServices, setLoadingServices] = useState(false);
+  const [loadingTemplate, setLoadingTemplate] = useState(isEditing);
 
   // validation errors
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -94,16 +77,58 @@ export default function CreateTemplatePage() {
   // Derived
   const canNavigateToChildren = templateExists;
 
+  // Load template data if editing
+  useEffect(() => {
+    if (isEditing && templateSlugFromUrl) {
+      const loadTemplate = async () => {
+        try {
+          setLoadingTemplate(true);
+          const templateData = await ProjectManagement.getProjectTemplate(
+            templateSlugFromUrl
+          );
+          console.log("templateData: ", templateData);
+          setTemplate(templateData);
+
+          // Pre-fill basic info
+          setBasic({
+            name: templateData.name,
+            slug: templateData.slug,
+            description: templateData.description || "",
+            base_domain: templateData.base_domain,
+            notify_emails: templateData.notify_emails || [],
+          });
+
+          // Pre-fill notification emails
+          setNotifyEmailsText(templateData.notify_emails?.join(", ") || "");
+
+          // Pre-fill database info
+          setDbRequired(templateData.db_required);
+          if (templateData.db_type) {
+            setDbType(templateData.db_type);
+          }
+        } catch (error: any) {
+          console.error("Error loading template", error);
+          toast.error(error.detail || "Failed to load template");
+          nav("/templates");
+        } finally {
+          setLoadingTemplate(false);
+        }
+      };
+
+      loadTemplate();
+    }
+  }, [isEditing, templateSlugFromUrl, nav]);
+
   // Helpers
   const setBasicField = (k: keyof BasicInfoPayload, v: any) => {
     setBasic((s) => ({ ...s, [k]: v }));
-    if (k === "name" && !basic.slug) {
-      // update slug auto when name typed and slug blank
+    if (k === "name" && !basic.slug && !isEditing) {
+      // update slug auto when name typed and slug blank (only for new templates)
       setBasic((s) => ({ ...s, slug: slugify(v) }));
     }
   };
 
-  // Basic form submit -> create template
+  // Basic form submit -> create or update template
   const handleSaveBasic = async () => {
     // validate
     const err: Record<string, string> = {};
@@ -126,14 +151,26 @@ export default function CreateTemplatePage() {
           .map((s) => s.trim())
           .filter(Boolean),
       };
-      const created = await ProjectManagement.createProjectTemplate(payload);
+
+      let created;
+      if (isEditing && template) {
+        // Update existing template
+        created = await ProjectManagement.updateProjectTemplate(
+          template.slug,
+          payload
+        );
+        toast.success("Template updated");
+      } else {
+        // Create new template
+        created = await ProjectManagement.createProjectTemplate(payload);
+        toast.success("Template created");
+      }
+
       setTemplate(created);
-      toast.success("Template created");
-      // after create allow navigation
     } catch (e: any) {
-      console.error("create template error", e);
+      console.error("create/update template error", e);
       const msg =
-        typeof e === "string" ? e : e?.detail || "Failed creating template";
+        typeof e === "string" ? e : e?.detail || "Failed saving template";
       toast.error(msg);
     } finally {
       setLoadingBasic(false);
@@ -149,6 +186,7 @@ export default function CreateTemplatePage() {
         db_required: dbRequired,
         db_type: dbRequired ? dbType : undefined,
       };
+
       const patched = await ProjectManagement.partialUpdateProjectTemplate(
         template.slug,
         payload
@@ -160,116 +198,6 @@ export default function CreateTemplatePage() {
       toast.error(e?.detail || "Failed saving database configuration");
     } finally {
       setLoadingDb(false);
-    }
-  };
-
-  // Service helpers
-  const newServiceDraft = (): ServiceDraft => ({
-    id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
-    name: "",
-    service_type: "backend",
-    repo_url: "",
-    repo_branch: "main",
-    dockerfile_path: "./Dockerfile",
-    internal_provision_endpoint: "",
-    env_vars: [],
-  });
-
-  const addServiceDraft = () => {
-    setServices((s) => [...s, newServiceDraft()]);
-  };
-
-  const updateServiceDraft = (id: string, patch: Partial<ServiceDraft>) => {
-    setServices((s) =>
-      s.map((it) => (it.id === id ? { ...it, ...patch } : it))
-    );
-  };
-
-  const removeServiceDraft = (id: string) => {
-    setServices((s) => s.filter((it) => it.id !== id));
-  };
-
-  const addServiceEnvVar = (id: string, name: string, value: string) => {
-    setServices((s) =>
-      s.map((it) =>
-        it.id === id
-          ? { ...it, env_vars: [...it.env_vars, { name, value }] }
-          : it
-      )
-    );
-  };
-
-  const removeServiceEnvVar = (id: string, idx: number) => {
-    setServices((s) =>
-      s.map((it) =>
-        it.id === id
-          ? { ...it, env_vars: it.env_vars.filter((_, i) => i !== idx) }
-          : it
-      )
-    );
-  };
-
-  // Save services -> create service-templates for each
-  const handleSaveServices = async () => {
-    if (!template) {
-      toast.error("Save basic info first");
-      return;
-    }
-    if (services.length === 0) {
-      toast.error("Add at least one service");
-      return;
-    }
-
-    // minimal validation: each service needs a name and type
-    for (const s of services) {
-      if (!s.name.trim()) {
-        toast.error("Every service needs a name");
-        return;
-      }
-      if (!s.service_type.trim()) {
-        toast.error("Every service needs a type");
-        return;
-      }
-    }
-
-    setLoadingServices(true);
-    try {
-      // Build array payloads
-      const items = services.map((s) => {
-        if (!s.dockerfile_path) {
-          toast.error("Docker File path");
-          return;
-        }
-        return {
-          // include project id here (serializer expects project pk)
-          project: template.id,
-          name: s.name.trim(),
-          service_type: s.service_type,
-          repo_url: s.repo_url || "",
-          repo_branch: s.repo_branch || "",
-          build_config: {
-            dockerfile: s.dockerfile_path,
-            // you may want to embed envs under build_config or as a separate field
-            env: s.env_vars || [],
-          },
-          internal_provision_token_secret: s.internal_provision_token_secret,
-          internal_provision_endpoint: s.internal_provision_endpoint || "",
-          // If your backend expects `build_env` instead, adapt accordingly
-          // build_env: s.env_vars || []
-        };
-      });
-
-      // send array in one request
-      console.log("sending items: ", items);
-      const created = await ProjectManagement.bulkCreateServiceTemplate(items);
-      console.log("bulk created:", created);
-      toast.success("Services created");
-      nav(`/templates/${template.slug}`);
-    } catch (e: any) {
-      console.error("create services error", e);
-      toast.error(e?.detail || e?.message || "Failed creating services");
-    } finally {
-      setLoadingServices(false);
     }
   };
 
@@ -288,6 +216,14 @@ export default function CreateTemplatePage() {
     </button>
   );
 
+  if (loadingTemplate) {
+    return (
+      <div className="p-8 flex items-center justify-center">
+        <div className="text-lg">Loading template...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-8">
       <div className="flex items-center justify-between mb-6">
@@ -300,9 +236,13 @@ export default function CreateTemplatePage() {
             <span className="text-sm">Back to Templates</span>
           </button>
           <div>
-            <h1 className="text-2xl font-semibold">Create Project Template</h1>
+            <h1 className="text-2xl font-semibold">
+              {isEditing ? "Edit Project Template" : "Create Project Template"}
+            </h1>
             <p className="text-sm text-slate-500">
-              Define a reusable template for automated project deployments
+              {isEditing
+                ? "Update your project template"
+                : "Define a reusable template for automated project deployments"}
             </p>
           </div>
         </div>
@@ -320,7 +260,6 @@ export default function CreateTemplatePage() {
               // If basic not saved, save it; else if services tab, save services; etc
               if (activeTab === "basic") handleSaveBasic();
               else if (activeTab === "database") handleSaveDb();
-              else if (activeTab === "services") handleSaveServices();
             }}
             className="px-4 py-2 rounded-md bg-slate-900 text-white inline-flex items-center gap-2"
           >
@@ -368,12 +307,21 @@ export default function CreateTemplatePage() {
                   className="mt-1 w-full px-3 py-2 border rounded-md"
                   value={basic.slug}
                   onChange={(e) =>
-                    setBasicField("slug", slugify(e.target.value))
+                    setBasicField(
+                      "slug",
+                      isEditing ? e.target.value : slugify(e.target.value)
+                    )
                   }
                   placeholder="dms-project"
+                  disabled={isEditing} // Disable slug editing for existing templates
                 />
                 {errors.slug && (
                   <div className="text-xs text-red-600 mt-1">{errors.slug}</div>
+                )}
+                {isEditing && (
+                  <p className="text-xs text-slate-400 mt-1">
+                    Slug cannot be changed for existing templates
+                  </p>
                 )}
               </div>
 
@@ -427,6 +375,29 @@ export default function CreateTemplatePage() {
               <button
                 onClick={() => {
                   setErrors({});
+                  if (isEditing && template) {
+                    // Reset to original values for edit mode
+                    setBasic({
+                      name: template.name,
+                      slug: template.slug,
+                      description: template.description || "",
+                      base_domain: template.base_domain,
+                      notify_emails: template.notify_emails || [],
+                    });
+                    setNotifyEmailsText(
+                      template.notify_emails?.join(", ") || ""
+                    );
+                  } else {
+                    // Reset to empty values for create mode
+                    setBasic({
+                      name: "",
+                      slug: "",
+                      description: "",
+                      base_domain: "",
+                      notify_emails: [],
+                    });
+                    setNotifyEmailsText("");
+                  }
                 }}
                 className="px-4 py-2 rounded-md border bg-white"
               >
@@ -438,7 +409,11 @@ export default function CreateTemplatePage() {
                 disabled={loadingBasic}
                 className="px-4 py-2 rounded-md bg-slate-900 text-white inline-flex items-center gap-2"
               >
-                {loadingBasic ? "Saving…" : "Save Basic Info"}
+                {loadingBasic
+                  ? "Saving…"
+                  : isEditing
+                  ? "Update Basic Info"
+                  : "Save Basic Info"}
               </button>
             </div>
           </section>
@@ -515,7 +490,17 @@ export default function CreateTemplatePage() {
             <div className="mt-6 flex items-center justify-end gap-3">
               <button
                 className="px-4 py-2 rounded-md border bg-white"
-                onClick={() => setDbRequired(false)}
+                onClick={() => {
+                  if (isEditing && template) {
+                    setDbRequired(template.db_required);
+                    if (template.db_type) {
+                      setDbType(template.db_type);
+                    }
+                  } else {
+                    setDbRequired(false);
+                    setDbType("postgres");
+                  }
+                }}
               >
                 Reset
               </button>
@@ -533,260 +518,13 @@ export default function CreateTemplatePage() {
         )}
 
         {/* Services View */}
-        {activeTab === "services" && (
-          <section>
-            <h3 className="text-lg font-semibold mb-1">Service Templates</h3>
-            <p className="text-sm text-slate-500 mb-6">
-              Define the services that will be deployed for each tenant
-            </p>
-
-            <div className="mb-4 flex justify-end">
-              <button
-                onClick={addServiceDraft}
-                className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-slate-900 text-white"
-              >
-                <Plus className="w-4 h-4" /> Add Service
-              </button>
-            </div>
-
-            {services.length === 0 ? (
-              <div className="py-12 text-center text-slate-500">
-                No services added yet. Click "Add Service" to begin.
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {services.map((s, idx) => (
-                  <div key={s.id} className="border rounded-lg p-4 bg-slate-50">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="font-medium">Service {idx + 1}</div>
-                      <button
-                        onClick={() => removeServiceDraft(s.id)}
-                        className="text-red-600 p-1 rounded hover:bg-red-50"
-                      >
-                        <Trash className="w-4 h-4" />
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm text-slate-700">
-                          Service Name
-                        </label>
-                        <input
-                          className="mt-1 w-full px-3 py-2 border rounded-md"
-                          value={s.name}
-                          onChange={(e) =>
-                            updateServiceDraft(s.id, { name: e.target.value })
-                          }
-                          placeholder="backend"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm text-slate-700">
-                          Service Type
-                        </label>
-                        <select
-                          className="mt-1 w-full px-3 py-2 border rounded-md"
-                          value={s.service_type}
-                          onChange={(e) =>
-                            updateServiceDraft(s.id, {
-                              service_type: e.target.value,
-                            })
-                          }
-                        >
-                          <option value="backend">Backend</option>
-                          <option value="frontend">Frontend</option>
-                          {/* <option value="db">Database</option> */}
-                          {/* <option value="worker">Worker</option>
-                          <option value"other">Other</option> */}
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm text-slate-700">
-                          Repository URL
-                        </label>
-                        <input
-                          className="mt-1 w-full px-3 py-2 border rounded-md"
-                          value={s.repo_url}
-                          onChange={(e) =>
-                            updateServiceDraft(s.id, {
-                              repo_url: e.target.value,
-                            })
-                          }
-                          placeholder="https://github.com/company/repo"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm text-slate-700">
-                          Branch
-                        </label>
-                        <input
-                          className="mt-1 w-full px-3 py-2 border rounded-md"
-                          value={s.repo_branch}
-                          onChange={(e) =>
-                            updateServiceDraft(s.id, {
-                              repo_branch: e.target.value,
-                            })
-                          }
-                          placeholder="main"
-                        />
-                      </div>
-
-                      {s.service_type === "backend" && (
-                        <div className="">
-                          <label className="block text-sm text-slate-700">
-                            Internal Provision Endpoint
-                          </label>
-                          <input
-                            className="mt-1 w-full px-3 py-2 border rounded-md"
-                            value={s.internal_provision_endpoint}
-                            onChange={(e) =>
-                              updateServiceDraft(s.id, {
-                                internal_provision_endpoint: e.target.value,
-                              })
-                            }
-                            placeholder="/api/admin/setup"
-                          />
-                          <p className="text-xs text-slate-400 mt-1">
-                            Endpoint to call after deployment for initial setup
-                            (required for backend)
-                          </p>
-                        </div>
-                      )}
-
-                      <div>
-                        <label className="block text-sm text-slate-700">
-                          Dockerfile Path
-                        </label>
-                        <input
-                          className="mt-1 w-full px-3 py-2 border rounded-md"
-                          value={s.dockerfile_path}
-                          onChange={(e) =>
-                            updateServiceDraft(s.id, {
-                              dockerfile_path: e.target.value,
-                            })
-                          }
-                          placeholder="./Dockerfile"
-                        />
-                      </div>
-
-                      {s.service_type === "backend" && (
-                        <div className="md:col-span-2">
-                          <label className="block text-sm text-slate-700">
-                            Provision Token
-                          </label>
-                          <div className="">
-                            <input
-                              className="mt-1 w-full px-3 py-2 border rounded-md"
-                              value={s.internal_provision_token_secret}
-                              placeholder="Paste your Token here"
-                              onChange={(e) =>
-                                updateServiceDraft(s.id, {
-                                  internal_provision_token_secret:
-                                    e.target.value,
-                                })
-                              }
-                            />
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Env vars entry */}
-                      <div className="md:col-span-2">
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 items-end">
-                          <input
-                            className="col-span-1 px-3 py-2 border rounded-md"
-                            placeholder="VAR_NAME"
-                            id={`env-name-${s.id}`}
-                          />
-                          <input
-                            className="col-span-1 px-3 py-2 border rounded-md"
-                            placeholder="value"
-                            id={`env-value-${s.id}`}
-                          />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const nameEl = document.getElementById(
-                                `env-name-${s.id}`
-                              ) as HTMLInputElement | null;
-                              const valEl = document.getElementById(
-                                `env-value-${s.id}`
-                              ) as HTMLInputElement | null;
-                              const name = nameEl?.value ?? "";
-                              const value = valEl?.value ?? "";
-                              if (!name.trim()) {
-                                toast.error("Env variable name required");
-                                return;
-                              }
-                              addServiceEnvVar(s.id, name.trim(), value);
-                              if (nameEl) nameEl.value = "";
-                              if (valEl) valEl.value = "";
-                            }}
-                            className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-white border"
-                          >
-                            Add Variable
-                          </button>
-                        </div>
-
-                        {/* list */}
-                        <div className="mt-3 space-y-2">
-                          {s.env_vars.length === 0 ? (
-                            <div className="text-sm text-slate-400">
-                              No variables added
-                            </div>
-                          ) : (
-                            s.env_vars.map((v, i) => (
-                              <div
-                                key={i}
-                                className="flex items-center justify-between gap-3 bg-white border rounded px-3 py-2"
-                              >
-                                <div>
-                                  <div className="text-sm font-medium">
-                                    {v.name}
-                                  </div>
-                                  <div className="text-xs text-slate-500">
-                                    {v.value}
-                                  </div>
-                                </div>
-                                <button
-                                  onClick={() => removeServiceEnvVar(s.id, i)}
-                                  className="text-red-600 p-1 rounded hover:bg-red-50"
-                                >
-                                  <Trash className="w-4 h-4" />
-                                </button>
-                              </div>
-                            ))
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <div className="mt-6 flex items-center justify-end gap-3">
-              <button
-                onClick={() => setServices([])}
-                className="px-4 py-2 rounded-md border bg-white"
-              >
-                Reset
-              </button>
-              <button
-                onClick={handleSaveServices}
-                disabled={!template || loadingServices}
-                className={`px-4 py-2 rounded-md inline-flex items-center gap-2 text-white ${
-                  !template ? "bg-slate-300 cursor-not-allowed" : "bg-slate-900"
-                }`}
-              >
-                {loadingServices ? "Saving…" : "Save Services"}
-              </button>
-            </div>
-          </section>
+        {activeTab === "services" && template && (
+          <ServiceTemplatesForm
+            templateId={template.id}
+            templateSlug={template.slug}
+            isEditing={isEditing}
+            initialServices={template.service_templates || []}
+          />
         )}
       </div>
     </div>

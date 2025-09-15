@@ -1,3 +1,4 @@
+// utils/types.ts
 export interface ProjectDetailType {
   id: 4;
   name: "What a shot";
@@ -75,4 +76,112 @@ export interface ProjectDetailType {
     db_type: "postgres";
     note: "Synthetic DB service created per-template configuration";
   };
+}
+
+export interface TenantType {
+  id: 1;
+  project: {
+    id: 5;
+    name: "LMS Project";
+    slug: "lmsproject";
+    description: "Real Project to deploy, this template will be used to deploy LMS in the future";
+    base_domain: "schoolcare.pk";
+    db_required: true;
+    db_type: "postgres";
+    notify_emails: ["moinuldinc@gmail.com", "trulegend604@gmail.com"];
+    created_at: "2025-09-11T13:48:10.310881Z";
+    updated_at: "2025-09-11T13:48:18.336097Z";
+    active: true;
+    created_by: 1;
+  };
+  created_by: {
+    id: 1;
+    email: "moinuldinc@gmail.com";
+    first_name: "";
+    last_name: "";
+    role: "admin";
+    profile_picture: null;
+  };
+  name: "Moin uldin";
+  client_ref: null;
+  subdomain: "newdomain";
+  status: string;
+  created_at: "2025-09-12T08:49:24.943637Z";
+  updated_at: "2025-09-12T08:49:24.943637Z";
+  completed_at: null;
+  detail: "";
+  active: true;
+  deployment_id: number;
+  deployment_status: string;
+  deployment_trigger_reason: string;
+}
+export interface InstanceType {
+  id: number;
+  status: string;
+  environment: string;
+}
+export interface ProjectTenantType {
+  name: "LMS Project";
+  description: "Real Project to deploy, this template will be used to deploy LMS in the future";
+  created_at: "2025-09-11T13:48:10.310881Z";
+  last_updated: "2025-09-11T13:48:18.336097Z";
+  tenants: TenantType[];
+  last_deployment: null;
+  quick_stats: {
+    total_instances: 5;
+    running: 0;
+    deploying: 5;
+    stopped: 0;
+  };
+  instances: InstanceType[];
+}
+
+export interface ProjectSummary {
+  id: number;
+  name: string;
+  slug: string;
+  description: string;
+  base_domain: string;
+  db_required: true;
+  db_type: string;
+  notify_emails: string[];
+  created_at: string;
+  updated_at: string;
+  active: boolean;
+  created_by: number;
+}
+
+// ========================================================================
+//  ========================= deployment and logs =========================
+// ========================================================================
+export interface DeploymentLogsType {
+  ts: string;
+  message: string;
+  type: string;
+  meta: {};
+}
+export interface DeploymentsStepsType {
+  id: number;
+  step_key: string;
+  order: number;
+  status: "pending" | "running" | "success" | "failed" | "skipped";
+  attempts: number;
+  started_at: null | string;
+  ended_at: null | string;
+  message: string;
+  meta: {};
+  created_at: string;
+  updated_at: string;
+  deployment: number;
+  tenant_service: number | null;
+}
+export interface DeploymentForLogsType {
+  id: 7;
+  status: string;
+  trigger_reason: string;
+  started_at: string;
+  duration_seconds: null;
+  tenant_id: 7;
+  logs: DeploymentLogsType[];
+  steps: DeploymentsStepsType[];
 }

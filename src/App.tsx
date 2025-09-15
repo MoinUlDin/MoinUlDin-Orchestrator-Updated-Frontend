@@ -4,10 +4,12 @@ import { lazy } from "react";
 import RoleProtectedRoute from "./components/RoleProtectedRoute";
 import TopNavLayout from "./layouts/TopNavLayout";
 import { Toaster } from "react-hot-toast";
+const DashboardMain = lazy(() => import("./pages/DashboardMain"));
 const LoginPage = lazy(() => import("./pages/auth/Login"));
 const WorkingOnPage = lazy(() => import("./pages/WorkingOnPage"));
 const ProjectList = lazy(() => import("./pages/ProjectsList"));
 const ProjectDetails = lazy(() => import("./pages/ProjectDetailPage"));
+const DeploymentLogs = lazy(() => import("./pages/DeploymentLogs"));
 const CreateTemplatePage = lazy(() => import("./pages/CreateTemplatePage"));
 const TemplateListPage = lazy(() => import("./pages/TemplateListPage"));
 const TemplateDetailPage = lazy(() => import("./pages/TemplateDetailPage"));
@@ -25,7 +27,7 @@ function App() {
               element={
                 <RoleProtectedRoute allowedRoles={["Admin", "Manager"]}>
                   <TopNavLayout>
-                    <WorkingOnPage />
+                    <DashboardMain />
                   </TopNavLayout>
                 </RoleProtectedRoute>
               }
@@ -37,6 +39,26 @@ function App() {
                 <RoleProtectedRoute allowedRoles={["Admin", "Manager"]}>
                   <TopNavLayout>
                     <ProjectList />
+                  </TopNavLayout>
+                </RoleProtectedRoute>
+              }
+            />
+            <Route
+              path="/project-detail/:slug"
+              element={
+                <RoleProtectedRoute allowedRoles={["Admin", "Manager"]}>
+                  <TopNavLayout>
+                    <ProjectDetails />
+                  </TopNavLayout>
+                </RoleProtectedRoute>
+              }
+            />
+            <Route
+              path="/projects/:slug/instances/:deploymentId/logs"
+              element={
+                <RoleProtectedRoute allowedRoles={["Admin", "Manager"]}>
+                  <TopNavLayout>
+                    <DeploymentLogs />
                   </TopNavLayout>
                 </RoleProtectedRoute>
               }
