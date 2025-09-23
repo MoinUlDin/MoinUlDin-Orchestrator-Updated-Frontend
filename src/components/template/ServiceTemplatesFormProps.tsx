@@ -337,7 +337,7 @@ export default function ServiceTemplatesForm({
                       <input
                         className="mt-1 w-full px-3 py-2 border rounded-md"
                         value={s.internal_provision_token_secret}
-                        placeholder="Paste your Token here"
+                        placeholder="Paste/Create your Token here (characters, numbers & _ only, e.g., C2Cas_sce233...)"
                         onChange={(e) =>
                           updateServiceDraft(s.id, {
                             internal_provision_token_secret: e.target.value,
@@ -380,9 +380,9 @@ export default function ServiceTemplatesForm({
                         if (nameEl) nameEl.value = "";
                         if (valEl) valEl.value = "";
                       }}
-                      className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-white border"
+                      className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-black text-white border"
                     >
-                      Add Variable
+                      <Plus className="w-4 h-4" /> Add Variable
                     </button>
                   </div>
 

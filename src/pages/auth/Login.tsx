@@ -21,7 +21,7 @@ export default function Login() {
     AuthServices.login({ email, password })
       .then((r) => {
         console.log("Response login: ", r);
-        navigate("/projects");
+        navigate("/dashboard");
       })
       .catch((e) => {
         console.error("Orignal", e);

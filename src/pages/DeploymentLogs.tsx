@@ -182,8 +182,6 @@ const DeploymentLogs: React.FC = () => {
   const DELAYTIME = 10000;
   const [streaming, setStreaming] = useState<boolean>(true);
   const [paused, setPaused] = useState<boolean>(false);
-  const [fullResponse, setFullResponse] =
-    useState<DeploymentForLogsType | null>(null);
   const [filter, setFilter] = useState<"ALL" | "INFO" | "SUCCESS" | "ERROR">(
     "ALL"
   );
@@ -192,7 +190,7 @@ const DeploymentLogs: React.FC = () => {
   const logsRef = useRef<HTMLDivElement | null>(null);
 
   const fetchLogs = async () => {
-    if (!deploymentId) return;
+    if (!deploymentId && (slug || !slug)) return;
     setLoading(true);
     setError(null);
     try {
@@ -205,7 +203,6 @@ const DeploymentLogs: React.FC = () => {
         steps: stepList,
         progress: prog,
       } = parseApiResponse(res);
-      setFullResponse(res);
       console.log("Response for logs: ", res);
       setLogs(newLogs || []);
       setDeployment(meta || null);
@@ -275,17 +272,17 @@ const DeploymentLogs: React.FC = () => {
 
   const handleResumeStop = () => {
     if (!deploymentId) return toast.error("deployment id not found");
-    if (deployment?.status === "failed") {
+    if (deployment?.status === "failed" || deployment?.status === "pending") {
       ProjectManagement.resumeDeployment(deploymentId)
         .then(() => {
+          toast.success("Deployment will resumed shortly", { duration: 5000 });
           fetchLogs();
-          toast.success("Deployment is now being resumed");
         })
         .catch((err) => {
           toast.error(err.message || "error occured");
         });
     } else {
-      toast.success("random text ");
+      toast.error("Can't stop running deployement ");
     }
   };
   const filteredLogs = logs.filter((l) => filterLogLine(l, filter));
@@ -329,14 +326,23 @@ const DeploymentLogs: React.FC = () => {
 
           <button
             className={`inline-flex  border rounded ${
-              deployment?.status === "failed" ? "bg-blue-600" : "bg-red-600"
+              deployment?.status === "failed" ||
+              deployment?.status === "pending"
+                ? "bg-blue-600"
+                : "bg-red-600"
             }   text-white hover:bg-red-700`}
             onClick={() => {
               handleResumeStop();
             }}
-            title={deployment?.status === "failed" ? "resume" : "stop"}
+            title={
+              deployment?.status === "failed" ||
+              deployment?.status === "pending"
+                ? "resume"
+                : "stop"
+            }
           >
-            {deployment?.status === "failed" ? (
+            {deployment?.status === "failed" ||
+            deployment?.status === "pending" ? (
               <span className="flex items-center gap-2 px-3 py-1">
                 <PlayIcon size={14} /> Resume
               </span>

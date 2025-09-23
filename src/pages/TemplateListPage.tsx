@@ -103,6 +103,9 @@ const TemplateListPage: React.FC = () => {
       day: "numeric",
     });
   };
+  const handleCreateTemplate = () => {
+    navigate("/templates/create-template/__new__");
+  };
 
   const getStatusBadge = (status: string) => {
     if (status === "active") {
@@ -155,7 +158,10 @@ const TemplateListPage: React.FC = () => {
               Create and manage project templates for automated deployments
             </p>
           </div>
-          <button className="bg-gray-900 text-sm text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-purple-700 transition-colors">
+          <button
+            onClick={handleCreateTemplate}
+            className="bg-gray-900 text-sm text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-purple-700 transition-colors"
+          >
             <Plus className="w-3 h-3" />
             Create Template
           </button>
