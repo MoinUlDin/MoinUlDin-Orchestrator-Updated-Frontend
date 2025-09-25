@@ -1,5 +1,6 @@
 // src/components/ProjectCard.tsx
-import { Play } from "lucide-react"; //ExternalLink, GitPullRequest
+import { Eye, Play } from "lucide-react"; //ExternalLink, GitPullRequest
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 type Props = {
@@ -10,7 +11,7 @@ type Props = {
     description?: string;
     repo?: string;
     active_tenants_count?: number;
-    status?: "active" | "deploying" | "inactive";
+    active?: boolean;
     updated_at?: string;
   };
   deploybtn: (project: any) => void;
@@ -22,6 +23,9 @@ export default function ProjectCard({ project, deploybtn }: Props) {
   const onDeploy = () => {
     deploybtn(project);
   };
+  useEffect(() => {
+    console.log("project we got: ", project);
+  }, []);
 
   const onView = () => {
     nav(`/project-detail/${project.slug}`);
@@ -43,14 +47,12 @@ export default function ProjectCard({ project, deploybtn }: Props) {
             <div className="text-xs text-slate-400">{project.repo}</div>
             <div
               className={`mt-3 inline-flex items-center gap-2 text-xs px-2 py-1 rounded-full ${
-                project.status === "active"
+                project.active
                   ? "bg-green-100 text-green-800"
-                  : project.status === "deploying"
-                  ? "bg-yellow-100 text-yellow-800"
                   : "bg-slate-100 text-slate-600"
               }`}
             >
-              {project.status || "inactive"}
+              {project.active ? "active" : "inactive"}
             </div>
           </div>
         </div>
@@ -76,8 +78,9 @@ export default function ProjectCard({ project, deploybtn }: Props) {
 
         <button
           onClick={onView}
-          className="px-3 py-2 rounded-lg bg-white border text-slate-700"
+          className="px-3 py-2 rounded-lg bg-white border text-slate-700 flex items-center gap-2"
         >
+          <Eye size={16} />
           View
         </button>
       </div>

@@ -141,7 +141,7 @@ const DashboardMain: React.FC = () => {
       ) : (
         <>
           {/* Stat cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <StatCard
               title="Total Projects"
               value={stats?.total_projects ?? 0}
@@ -157,7 +157,7 @@ const DashboardMain: React.FC = () => {
             <StatCard
               title="Running Tenants"
               value={stats?.running_tenants ?? 0}
-              subtitle="Currently deployed"
+              subtitle="Currently deploying"
               icon={<Zap size={20} />}
             />
             <StatCard

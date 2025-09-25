@@ -14,6 +14,10 @@ export default function ProjectsList() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [filteredProjects, setFilteredProjects] = useState<ProjectSummary[]>(
+    []
+  );
+  const [query, setQuery] = useState<string>("");
   const [deployProject, setDeployProject] = useState<ProjectSummary | null>(
     null
   );
@@ -42,6 +46,21 @@ export default function ProjectsList() {
     };
   }, []);
 
+  useEffect(() => {
+    const q = (query ?? "").trim().toLowerCase();
+    if (q.length > 0) {
+      setFilteredProjects(
+        projects.filter((item) => {
+          const name = (item.name ?? "").toLowerCase();
+          const desc = (item.description ?? "").toLowerCase();
+          return name.includes(q) || desc.includes(q);
+        })
+      );
+    } else {
+      setFilteredProjects(projects);
+    }
+  }, [query, projects]);
+
   const refresh = () => {
     setLoading(true);
     ProjectManagement.listProjectTemplates()
@@ -69,6 +88,8 @@ export default function ProjectsList() {
 
       <div className="mb-6 flex items-center gap-4">
         <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
           type="search"
           placeholder="Search projects..."
           className="flex-1 max-w-lg px-4 py-2 border rounded-lg bg-white"
@@ -91,7 +112,7 @@ export default function ProjectsList() {
         <div className="py-8 text-center text-slate-600">No projects yet.</div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {projects.map((p) => (
+          {filteredProjects.map((p) => (
             <ProjectCard
               key={p.slug}
               project={p}
